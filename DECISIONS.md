@@ -50,12 +50,12 @@ it came back as a truncation rather than a normal stop.
 
 Which cell still returns a single answer at temperature 1.0, and why that
 one:
-
+The close list one still returns only one since it's asking for a capital and there is only one right answer for a capital so even increasing the temperature won't change that a country has more then one capital
 [...]
 
 Which cells a test asserting exact string equality would pass on, and what
 that tells me about testing this system:
-
+Everything except open list with temp 1.0 since there there could be a right answer that is stopped due
 [...]
 
 **The sentence that carries into week 10.** [One sentence about when you can
