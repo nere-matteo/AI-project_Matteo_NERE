@@ -75,6 +75,14 @@ def main() -> int:
     #   models. What does this measurement tell you about switching between
     #   them inside one request, and what would you do instead?
 
+    subprocess.run(["ollama", "stop", SMALL.name], check=True)
+
+    _, cold_seconds = timed(client, SHORT, SMALL.name)
+    _, warm_seconds = timed(client, SHORT, SMALL.name)
+
+    print(f"Cold Call: {cold_seconds:.2f} seconds")
+    print(f"Warm Call: {warm_seconds:.2f} seconds")
+  
     # TODO 8. Estimate what a real evaluation run would cost hosted.
     #
     #   In week 10 you build a golden set and run it. Assume 200 cases, each
@@ -90,6 +98,18 @@ def main() -> int:
     #
     #   Label them as estimates. They are not measurements and the price
     #   list is dated {PRICE_DATE}.
+
+    cases_per_night = 200
+    nights = 14 * 7
+    in_per_night = rows[1]["prompt_tokens"] * cases_per_night
+    out_per_night = rows[1]["completion_tokens"] * cases_per_night
+
+    for tier in ("small", "large"):
+        one_run = estimate(in_per_night, out_per_night, tier=tier)
+        semester = estimate(in_per_night * nights, out_per_night * nights, tier=tier)
+        print(f"{tier:<5} tier: one night {one_run.total:.2f} EUR "
+              f"full semester ({nights} nights) {semester.total:.2f} EUR "
+              f"(estimate, {PRICE_DATE} price list)")
 
     write_json("artifacts/week01_cost.json",
                {"rows": rows, "price_list_date": PRICE_DATE})

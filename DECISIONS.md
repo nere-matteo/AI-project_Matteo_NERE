@@ -55,23 +55,24 @@ The close list one still returns only one since it's asking for a capital and th
 
 Which cells a test asserting exact string equality would pass on, and what
 that tells me about testing this system:
-Everything except open list with temp 1.0 since there there could be a right answer that is stopped due
+Everything except open list with temp 1.0 since there there could be a right answer that is stopped due to a wording mistake or similar issues. What would need to be done which means it would need a more in debt correctness and meaning check. 
 [...]
 
 **The sentence that carries into week 10.** [One sentence about when you can
 and cannot rely on repeating an output. Week 10 will ask you to find this
 again. It should not say "the model is random", because your own table shows
 otherwise in most cells.]
+In these experiments, outputs repeated for the constrained prompt at both temperatures and the open-ended prompt at temperature 0, but varied for the open-ended prompt at temperature 1.0, so repeatability depends on the task and settings and must be measured rather than assured.
 
 ### 4. The cold start
 
-- cold call: [ ] s
-- warm call: [ ] s
-- ratio: [ ]
+- cold call: [ 1.04 ] s
+- warm call: [ 0.11 ] s
+- ratio: [ 9.45 ]
 
 What this implies for a system that uses more than one model, and what I
 will do about it:
-
+My cold call took 1.04 seconds and my warm call was 0.11 about 9.45 times quicker which means that if multiple models cannot fit together in memory then switching between them can repeatedly add loading delays. Meaning that I should group tasks by model and avoid unnecessary model switches within a single request. 
 [...]
 
 ### 5. Cost, estimated
@@ -79,8 +80,8 @@ will do about it:
 A 200-case golden set, at the token cost of my long case:
 
 | | one run | nightly for the semester |
-| small tier | | |
-| large tier | | |
+| small tier | 0.03 | 3.28 |
+| large tier | 2.49 | 244.14 |
 
 Estimates against the price list dated [date in `project/prices.py`], not
 measurements. Running locally, my actual monetary cost was zero.
@@ -88,7 +89,7 @@ measurements. Running locally, my actual monetary cost was zero.
 Which tier I would run nightly, which I would run before a release, and why
 not the same one for both:
 
-[...]
+I would use the small tier to run nightly for the semester since it is much cheaper but before a release I would use the large tier, since it is to make sure everything is working 
 
 ### Deferred
 

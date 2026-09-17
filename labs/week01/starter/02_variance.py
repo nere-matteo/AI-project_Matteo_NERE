@@ -143,7 +143,7 @@ def main() -> int:
     #        of these cells and fail on others. Name which, and say what
     #        that tells you about testing this system.
     # It would pass on temperature 0 but not on temperature 1.0 on open_list since it may reject valid responses because of difference in wording which means that open_lists also needs checks for meaning and correctness.
-    
+   
     # TODO 6. Then write down the one sentence that carries into week 10.
     #
     #   You will be tempted to write "the model is random". Resist it, the
