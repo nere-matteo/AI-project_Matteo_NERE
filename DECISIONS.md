@@ -96,3 +96,114 @@ I would use the small tier to run nightly for the semester since it is much chea
 [Anything you did not get to, and why. An explicit deferral with a reason is
 engineering. Silence is not, and the project rubric can tell the
 difference.]
+
+## Week 2
+
+**Run conditions.** model: [ qwen3:4b-instruct] | temperature: 0.0 | prompt version: [ week02-zero-shot-v1] |
+served locally with ollama| date: [2026-08-22] | scored on: [my own machine]
+
+### 1. The output contract
+
+The conventions I chose, and why:
+
+- due_date, when the message states no date: [ JSON null, represented as None in Python. This explicitly indicates that no date was provided]
+- due_date, when the message states only a relative expression: [ Also null. Expressions such as "tomorrow" or "before the end of the month" are not converted into calendar dates. ]
+- quote, and what "verbatim" means in my scorer: [ A nonempty passage of at most 300 characters, copied from the source to support the urgency decision. The scorer uses record.quote in document_text, without changing capitalization, punctuation, or whitespace.]
+- what my scorer does with a record that failed validation: [ It increments the invalid-record count and counts all four fields as wrong. THe record remains in the total.]
+
+[One sentence on why the last one matters. A scorer that skips the records
+it could not parse reports a number that improves as the model gets worse.]
+
+Counting invalid records as wrong prevents the reported accuracy from improving simply because the extractor produced answers it could not validate. 
+
+### 2. Zero-shot, per field
+
+| field | correct | of |
+| category | 8 | 10 |
+| urgency | 8 | 10 |
+| due_date | 8 | 10 |
+| quote | 10 | 10 |
+| invalid records | 0 | 10 |
+
+My prediction, written before block 3: examples will help most on [ ]
+because [ Examples will help most on due_date, because examples showing null for missing or relative dates should make that convention clearer. This field has the most room for improvement in my baseline. I will also check whether adding examples reduces the currently perfect quote score ].
+
+### 3. Few-shot
+
+Examples chosen, and the job each one does:
+
+| example | why it is in the block | field it should move |
+ EX-06 | The broken window is a facilities issue even though a printer is mentioned; worsening rain damage warrants urgent action without an explicit calendar deadline. | category, urgency, due_date |
+| EX-03 | A German laptop request demonstrates hardware, standard urgency, and conversion of European 20/09/2026 to 2026-09-20. | category, urgency, due_date |
+| EX-04 | An informational announcement requires no intervention; “next week” must remain null rather than become an invented date. | urgency, due_date |
+| EX-02 | A French message about a person trapped in a lift demonstrates urgent facilities work and a null date when no deadline is stated. | category, urgency, due_date |
+
+
+| field | zero-shot | few-shot | move |
+| category | 8/10 | 8/10 | 0|
+| urgency | 8/10 | 10/10 | + 2|
+| due_date | 8/10 | 8/10| 0|
+| quote | 10/10 | 10/10 | |
+
+### 4. What got worse
+
+[Name the field, if any, and diagnose it. If nothing got worse, say so and
+say how you checked. Then look at the failure lines rather than the counts,
+and say whether any error disappeared or merely changed shape. A wrong label
+that became a different wrong label has not been fixed.]
+
+No field's score got worse in the live comparison. Category stayed at 8/10 , due_date at 8/10, and quote at 10/10. Urgency improved from 8/10 to 10/10, and neither variant produced invalid records.
+
+Inspecting the individual failures showed that the urgency errors on REQ-09 and REQ-10 were corrected. The category errors on REQ-08 and REQ-09 remained unchanged. REQ-01 and REQ-10 still received invented dates instead of null: the predicted dates changed between variants, but the errors were not fixed.
+
+### 5. What the examples cost
+
+- extra input tokens per call: [ 302 ]
+- per thousand calls: [ 302 000 input extra tokens ]
+- estimated euros per thousand calls on the small tier: [ 0.0604 euro ], against the
+  price list dated [ 0.06 euro ]. Estimate, not a measurement.
+
+### 6. Ship it or not
+
+[Which variant, on what evidence, and what would change your mind. Ten
+records is not enough to be confident and saying so is worth more than
+claiming a win. If your answer is "keep one example and drop the rest", say
+which one and why.]
+
+I would provisionally choose the few-shot variant. In my live run, urgency improved from 8 to 10/10, while category and due_date stayed at 8/10 and quote stayed at 10/10. Neither variant produced invalid records. The examples added 302 input tokens per call, costing an estimated 0.06 euros per thousand calls on the course's small tier.
+
+However, then documents are too few to establish a reliable improvement. Before deploying it, I would test both variants on a larger, unseen set covering all three languages, especially ambiguous urgency and date expression. 
+
+I would change my mind if the urgency improvement disappeared on unseen cases or if the examples caused regressions in other fields. In that case, I would prefer zero-shot for its lower token cost. 
+
+### Sensitivity variant
+
+Variant tested: `role`.
+
+I prepended “You are a senior service desk analyst.” to my few-shot prompt. I kept the examples, schema, scorer, and evaluation documents unchanged and ran both variants live.
+
+| Field | Few-shot baseline | Role variant | Change |
+| Category | 8/10 | 9/10 | +1 |
+| Urgency | 10/10 | 10/10 | 0 |
+| Due_date | 8/10 | 8/10 | 0 |
+| Quote | 10/10 | 10/10 | 0 |
+
+Neither variant produced invalid records. English field errors decreased from three to two; French stayed at one and German stayed at zero.
+
+Adding the role instruction improved category accuracy by one correct answer on this set, with no decrease in any other field’s score. This shows that a small prompt change can affect measured results, but ten documents are too few to conclude that adding a role consistently improves extraction.
+
+### The gold set
+
+Ten cases written to `artifacts/goldset.json`, tagged by language.
+
+One thing my scorer cannot currently detect:
+
+[This is the most valuable line on the page. An example: "our scorer cannot
+tell a correctly formatted date that is simply the wrong date from a
+correctly extracted one, because it only compares strings."]
+
+My scorer checks whether the quote appears verbatim in the source, but cannot determine whether it actually supports the urgency decision.
+
+### Deferred
+
+[Anything you did not get to, and why.]

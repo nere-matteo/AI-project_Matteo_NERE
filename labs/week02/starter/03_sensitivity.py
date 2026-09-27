@@ -22,16 +22,26 @@ from documents import DOCS, GOLD
 from extractor import SYSTEM_ZERO_SHOT, get_client, run_variant
 from scoring import compare
 
+from importlib import import_module
+
 from project.trace import write_json
 
 VARIANTS = ("baseline", "role", "reordered", "no_delimiter", "english_only")
-
+SYSTEM_FEW_SHOT = import_module("02_few_shot").SYSTEM_FEW_SHOT
 
 # --------------------------------------------------------------------------
 # TODO 8. Build one variant and measure it against your few-shot baseline.
 # --------------------------------------------------------------------------
 
 def build_system(variant: str) -> str:
+    if variant == "baseline":
+        return SYSTEM_FEW_SHOT
+
+    if variant == "role":
+        return (
+            "You are a senior service desk analyst.\n"
+            + SYSTEM_FEW_SHOT
+        )
     """Return the system prompt for one variant.
 
     Start from your few-shot prompt from block 3, and change exactly one
@@ -62,7 +72,8 @@ def build_system(variant: str) -> str:
                    needed to attribute it. Week 13 asks who a system works
                    for, and this is what it costs to answer with evidence.
     """
-    raise NotImplementedError("TODO 8: build the variant")
+   
+    
 
 
 def main() -> int:

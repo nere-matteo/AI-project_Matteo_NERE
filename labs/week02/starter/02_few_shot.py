@@ -61,10 +61,35 @@ def few_shot_block(n: int = 4) -> str:
     stop copying verbatim, and the field that scored perfectly zero-shot
     will get worse. Look at the recording if you want to see that happen.
     """
-    raise NotImplementedError("TODO 5: build the example block")
+    if not 3 <= n <= 5:
+        raise ValueError("Choose between three and five examples")
+
+    # Ordered deliberately: the first three cover the core conventions.
+    choices = [
+        ("EX-06", "This is getting worse by the hour."),
+        ("EX-03", "Ersatz waere bis zum 20/09/2026 gut."),
+        ("EX-04", "For information only:"),
+        ("EX-02", "Intervention immediate necessaire."),
+        ("EX-01", "I can still get in through the main door, so it is not blocking me."),
+    ]
+    pool = {doc.id: (doc, gold) for doc, gold in EXAMPLE_POOL}
+    blocks = ["Examples of messages and their expected JSON outputs:"]
+    for example_id, quote in choices[:n]:
+        doc, gold = pool[example_id]
+        answer = {
+            "category": gold.category,
+            "urgency": gold.urgency,
+            "due_date": gold.due_date,
+            "quote": quote,
+        }
+        blocks.append(
+            f"Message:\n{doc.text}\n"
+            f"Output:\n{json.dumps(answer, ensure_ascii=False)}"
+        )
+    return "\n\n".join(blocks)
 
 
-SYSTEM_FEW_SHOT = SYSTEM_ZERO_SHOT + "\n"   # + few_shot_block(), once written
+SYSTEM_FEW_SHOT = SYSTEM_ZERO_SHOT + "\n" + few_shot_block()
 
 
 def main() -> int:
@@ -77,7 +102,7 @@ def main() -> int:
     zero_board, _, zero_metas = run_variant(client, SYSTEM_ZERO_SHOT,
                                             "zero-shot", DOCS, GOLD)
     few_board, _, few_metas = run_variant(
-        client, SYSTEM_ZERO_SHOT + "\n" + few_shot_block(), "few-shot",
+        client, SYSTEM_FEW_SHOT, "few-shot",
         DOCS, GOLD)
 
     print(compare(zero_board, few_board, "zero-shot", "few-shot"))

@@ -73,8 +73,86 @@ def main() -> int:
     #
     #   Then run: python -m project.verify
 
-    return 0
+    behaviors = {
+        "REQ-01": (
+            "Extract category access and urgency urgent because the user cannot "
+            "sign in and needs help today, set due_date to null because tomorrow "
+            "is a relative date, and copy an urgency-supporting quote verbatim."
+        ),
+        "REQ-02": (
+            "Extract category hardware and urgency standard for the broken "
+            "printer, normalize the explicit deadline 15/09/2026 to due_date "
+            "2026-09-15, and copy an urgency-supporting quote verbatim."
+        ),
+        "REQ-03": (
+            "Extract category billing and urgency standard for the incorrect "
+            "canteen invoice that explicitly does not need urgent attention, "
+            "set due_date to null because no date is stated, and copy an "
+            "urgency-supporting quote verbatim."
+        ),
+        "REQ-04": (
+            "Extract category facilities and urgency urgent because the "
+            "unlocked entrance creates an immediate building security problem, "
+            "set due_date to null because no calendar date is stated, and copy "
+            "an urgency-supporting quote verbatim."
+        ),
+        "REQ-05": (
+            "Extract category access and urgency standard for the explicitly "
+            "nonurgent account and shared-folder access request, set due_date "
+            "to null because Monday and the end of the month are relative "
+            "expressions, and copy an urgency-supporting quote verbatim."
+        ),
+        "REQ-06": (
+            "Extract category billing and urgency info because the supplier "
+            "reference update requires no action, set due_date to null because "
+            "the next billing cycle is not a calendar date, and copy an "
+            "urgency-supporting quote verbatim."
+        ),
+        "REQ-07": (
+            "Extract category facilities and urgency standard for the heating "
+            "repair needed before the next meeting, normalize 1. Oktober 2026 "
+            "to due_date 2026-10-01, and copy an urgency-supporting quote verbatim."
+        ),
+        "REQ-08": (
+            "Extract category hardware and urgency urgent because the file "
+            "server outage blocks the whole team's work, set due_date to null "
+            "because this morning and today are relative expressions, and copy "
+            "an urgency-supporting quote verbatim."
+        ),
+        "REQ-09": (
+            "Extract category other and urgency info because publishing opening "
+            "hours is presented as a suggestion rather than a problem, set "
+            "due_date to null because no date is stated, and copy an "
+            "urgency-supporting quote verbatim."
+        ),
+        "REQ-10": (
+            "Extract category access and urgency standard for the shared-mailbox "
+            "access request, set due_date to null because before the end of the "
+            "month is a relative deadline, and copy an urgency-supporting quote "
+            "verbatim."
+        ),
+    }
 
+    cases = []
+
+    for doc in DOCS:
+        gold = GOLD[doc.id]
+
+        case = GoldCase(
+            case_id=doc.id,
+            week_added=2,
+            question=doc.text,
+            expected=asdict(gold),
+            expected_behavior=behaviors[doc.id],
+            slice_tags=[doc.lang],
+        )
+
+        cases.append(case) 
+
+    gold_set = GoldSet(cases=cases)
+    write_json("artifacts/goldset.json", gold_set)
+
+    return 0
 
 if __name__ == "__main__":
     raise SystemExit(main())

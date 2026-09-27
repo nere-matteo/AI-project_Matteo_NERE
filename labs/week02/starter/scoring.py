@@ -139,12 +139,13 @@ def score_all(records, golds, docs) -> Scoreboard:
                     (doc.id, field_name, "Record failed validation")
                 )
 
-            continue 
+            continue
+ 
         results = score_one(record, golds[doc.id], doc.text)
 
         for field_name, result in results.items():
             if result.correct:
-                board.hits[field_name]
+                board.hits[field_name] += 1
             else: 
                 explanation = (
                     f"got {result.got!r}; expected {result.expected!r}"
@@ -152,8 +153,7 @@ def score_all(records, golds, docs) -> Scoreboard:
                 board.failures.append(
                     (doc.id, field_name, explanation)
                 )
-
-        return board
+    return board
 # --------------------------------------------------------------------------
 # Given.
 # --------------------------------------------------------------------------
