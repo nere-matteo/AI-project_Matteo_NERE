@@ -207,3 +207,111 @@ My scorer checks whether the quote appears verbatim in the source, but cannot de
 ### Deferred
 
 [Anything you did not get to, and why.]
+
+
+# Week 3: a router in front of the extractor
+
+Copy this into your `DECISIONS.md` and fill it in.
+
+---
+
+## Week 3
+
+**Run conditions.** classifier model: [qwen3:4b-instruct ] | answering model: [ ] |
+temperature: 0.0 | served locally | date: [2026-08-29 ] | scored on: [on my machine]
+
+### 1. The five route definitions
+
+| route | definition, one sentence, in terms of what the help desk must do |
+| request | A new ticket must be created and take action due to something broken, missing or needed |
+| info | A question must be answered about the procedure or a service without opening a ticket|
+| status | check and return the progression of a ticket or request that the sender has sent |
+| complaint | Help desk must acknowledge a dissatisfaction about the service or how a situation was handled |
+| other |  The help desk must redirect or decline messages outside its its remit, such an unrelated advice, spam, or messages intended for other departments|
+
+My convention for the four ambiguous queries:
+
+[Two defensible conventions exist. Neither is discoverable from the data.
+What matters is that yours was written down before you measured, not which
+one you picked.]
+
+Do my definitions match the ones in `queries.py`? [yes / no, and if no, what
+that does to my accuracy number]
+Not all of them matches the ones in queries.py, the status one I defined a bit differently, for example I just said to return where the process without opening a new ticket.
+
+### 2. The policy layer
+
+Before choosing a threshold, the confidence values I saw were: min [ 0.0 ],
+max [ 0.999 ], [ 4 ] distinct values across 24 queries.
+
+- confidence floor: [ 0.0 ], because [ All three routing errors had a confidence floor of 0.99, while two correctly routed had one of 0.0. Therefore confidence did not reliably distinguish correct from the incorrect behavior, so I disabled confidence-based rejection for this run. ]
+- evidence check: require a non-empty evidence span that appears exactly in the original message. If it does not, use the safe default and record evidence_not_verbatim. This prevents accepting invented or altered evidence, even when the predicted route is correct. 
+- safe default: [ info ], because that specialist [ only provides an informational response and does not open a ticket or escalate a complaint. Its instructions also prohibit inventing service facts. ]
+
+How often each check fired: below_threshold [ ], evidence_not_verbatim [ ],
+invalid_decision [ ].
+
+[If a check fired zero times, say what that tells you. A threshold that
+never fires is either a very good classifier or a useless signal, and the
+confidence distribution above tells you which.]
+With the chosen floor, the confidence check should fire zero times. This is intentional: the observed confidence values were not useful for detecting routing mistakes. The validation and evidence checks remain active.
+
+### 3. Route accuracy
+
+| route | correct | of |
+| request | | |
+| info | | |
+| status | | |
+| complaint | | |
+| other | | |
+
+Overall [ ]/24. Excluding the four ambiguous: [ ]/20.
+
+Confusion pairs, with direction:
+
+| gold | applied | count |
+| | | |
+
+The route carrying most of the error is [ ]. The fix is [a definition / a
+prompt / a bigger model], because [ ].
+
+### 4. What routing cost
+
+- monolith: [ ] tokens over 24 queries
+- router: [ ] tokens over 24 queries
+- the classifying call alone: [ ] tokens, which is [ ] per cent of the
+  routed total
+
+I predicted that share would be [ ] before measuring it.
+
+[If the share surprised you, say why. The classifier's prompt carries every
+route definition on every call, and the specialists carry only their own.]
+
+### 5. What routing bought
+
+One thing a specialist can be forbidden to do that the monolith cannot be
+given:
+
+[...]
+
+Would I ship the router: [ ]. Evidence: [ ]. What would change my mind: [ ].
+
+### 6. Stretch variant
+
+Variant assigned: [ ]. Result: [ ].
+
+[For model routing: report both models on accuracy, evidence verbatim, the
+confidence range, and resident memory. If the smaller model won, say so
+plainly and say what you think that means.]
+
+[For voting: report the split-vote count at each temperature. If nothing
+ever disagreed, that is the result. Say what it cost and what it bought.]
+
+### The gold set
+
+`artifacts/goldset.json` now holds [ ] cases: 10 from week 2 and 24 added
+today, with the four ambiguous ones tagged.
+
+### Deferred
+
+[Anything you did not get to, and why.]
