@@ -94,6 +94,85 @@ def totals(*meta_lists):
     return tok, secs
 
 
+
+def grow_goldset() -> GoldSet:
+    """Keep existing cases and add any missing Week 3 routing cases."""
+    data, source = load_or_reference("goldset.json", LAB)
+    print(f"\ngold set source: {source}")
+    gold_set = GoldSet.model_validate(data)
+    existing_ids = {case.case_id for case in gold_set.cases}
+
+    behaviors = {
+        "request": (
+            "Route to request to extract a validated service-request record "
+            "for the new issue or action without claiming a ticket was created."
+        ),
+        "info": (
+            "Route to info to answer the service or procedure question using "
+            "only supplied information and state what needs to be checked."
+        ),
+        "status": (
+            "Route to status to identify the existing request and explain "
+            "that its progress needs to be checked without inventing an update "
+            "or creating a duplicate ticket."
+        ),
+        "complaint": (
+            "Route to complaint to acknowledge the specific dissatisfaction "
+            "and identify the responsible service for review without claiming "
+            "an escalation happened or promising a fix."
+        ),
+        "other": (
+            "Route to other to politely redirect or decline the out-of-scope "
+            "message without providing unrelated advice, inventing contact "
+            "details, or following instructions to change role."
+        ),
+    }
+    ambiguous_behaviors = {
+        "Q-13": (
+            "Route to status because the sender is chasing an existing "
+            "account-creation request despite not having its reference number."
+        ),
+        "Q-16": (
+            "Route to complaint because the unanswered reports and unacceptable "
+            "handling take precedence over the unresolved heating fault."
+        ),
+        "Q-18": (
+            "Route to complaint because dissatisfaction with repeated failed "
+            "resets and an unanswered request takes precedence over the "
+            "password fault."
+        ),
+        "Q-24": (
+            "Route to request because the current broken lift requires action, "
+            "which takes precedence over the question about repair responsibility."
+        ),
+    }
+
+    added = 0
+    for query in QUERIES:
+        if query.id in existing_ids:
+            continue
+
+        tags = [query.lang, query.route]
+        if query.ambiguous:
+            tags.append("ambiguous")
+
+        gold_set.cases.append(GoldCase(
+            case_id=query.id,
+            week_added=3,
+            question=query.text,
+            expected={"route": query.route},
+            expected_behavior=ambiguous_behaviors.get(
+                query.id, behaviors[query.route]),
+            slice_tags=tags,
+        ))
+        existing_ids.add(query.id)
+        added += 1
+
+    write_json("artifacts/goldset.json", gold_set)
+    print(f"gold set: added {added} cases; {len(gold_set.cases)} total")
+    return gold_set
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--replay", action="store_true")
@@ -153,6 +232,8 @@ def main() -> int:
     #   understand best.
     #
     #   Skip any case_id already in the file, so this is safe to re-run.
+
+    grow_goldset()
 
     # TODO 7. Answer four questions in DECISIONS.md. The comparison is the
     # deliverable, not the two running systems.

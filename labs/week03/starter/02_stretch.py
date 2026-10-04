@@ -13,11 +13,12 @@ import collections
 import time
 
 from queries import QUERIES
-from router import apply_policy, classify
+from router import CONFIDENCE_FLOOR, SAFE_DEFAULT, apply_policy, classify
 from scoring import report, score_routes
 
 from project.models import LARGE, SMALL
-from project.trace import write_json
+from project.fixtures import ReplayClient
+from project.trace import utc_now, write_json
 
 import importlib.util
 import sys
@@ -34,7 +35,7 @@ _spec.loader.exec_module(_cmp)
 # TODO 8. One variant. Your instructor assigns you one.
 # --------------------------------------------------------------------------
 
-def variant_model(client) -> None:
+def variant_model(client, prediction: str | None = None) -> None:
     """Variant A. Same prompt, same queries, same policy. Only the model.
 
     Run the classifier over the twenty four queries on SMALL and on LARGE,
@@ -51,7 +52,80 @@ def variant_model(client) -> None:
     tells you something about your threshold from TODO 3a that you cannot
     unsee.
     """
-    raise NotImplementedError("TODO 8: variant A, model routing")
+    comparison = {
+        "variant": "model",
+        "prediction": prediction,
+        "run_date": utc_now(),
+        "source": "recording" if isinstance(client, ReplayClient) else "live",
+        "temperature": 0.0,
+        "confidence_floor": CONFIDENCE_FLOOR,
+        "safe_default": SAFE_DEFAULT,
+        "scored_against": "applied_route",
+        "models": [],
+    }
+
+    for model in (SMALL, LARGE):
+        print(f"\nClassifying {len(QUERIES)} queries with {model.name}...", flush=True)
+        results, metas, cases = [], [], []
+
+        for query in QUERIES:
+            decision, meta = classify(
+                client, query.text, model=model.name, temperature=0.0)
+            routed = apply_policy(decision, query.text)
+            results.append(routed)
+            metas.append(meta)
+            cases.append({
+                "case_id": query.id,
+                "gold_route": query.route,
+                "ambiguous": query.ambiguous,
+                "decision": decision.model_dump() if decision else None,
+                "applied_route": routed.applied_route,
+                "policy_fired": routed.policy_fired,
+                "evidence_ok": routed.evidence_ok,
+                **meta,
+            })
+            print(f"  {query.id}: {routed.applied_route}", flush=True)
+
+        board = score_routes(results, QUERIES)
+        tokens, seconds = _cmp.totals(metas)
+        confidence = {
+            "min": min(board.confidences) if board.confidences else None,
+            "max": max(board.confidences) if board.confidences else None,
+            "distinct": len(set(board.confidences)),
+        }
+        print(report(board, model.name))
+        print(f"  exact confidence range: {confidence['min']} to {confidence['max']}")
+        print(f"  resident memory (course reference): {model.resident_gb} GB")
+        print(f"  classification cost: {tokens} tokens, {seconds:.1f} seconds")
+
+        comparison["models"].append({
+            "model": model.name,
+            "hits": board.hits,
+            "total": board.total,
+            "unambiguous": [board.unambiguous_hits, board.unambiguous_total],
+            "per_route": board.per_route,
+            "confusion": {
+                f"{gold}->{applied}": n
+                for (gold, applied), n in board.confusion.items()
+            },
+            "policy_fired": dict(board.policy_fired),
+            "evidence_ok": board.evidence_ok,
+            "confidence": confidence,
+            "resident_gb": model.resident_gb,
+            "memory_source": "course reference from project/models.py",
+            "tokens": tokens,
+            "seconds": seconds,
+            "cases": cases,
+        })
+        write_json("artifacts/week03_model_comparison.json", comparison)
+
+    small, large = comparison["models"]
+    if small["hits"] == large["hits"]:
+        print(f"\nBoth models scored {small['hits']}/{small['total']}.")
+    else:
+        winner = max(comparison["models"], key=lambda result: result["hits"])
+        print(f"\nMore correct applied routes on this set: {winner['model']} "
+              f"({winner['hits']}/{winner['total']}).")
 
 
 def variant_voting(client, k: int = 3) -> None:
@@ -76,11 +150,13 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", choices=("model", "voting"), required=True)
     ap.add_argument("--replay", action="store_true")
+    ap.add_argument("--prediction", choices=("small", "large", "tie"),
+                    help="Prediction made before running the model comparison")
     args = ap.parse_args()
 
     client = _cmp.get_client(args.replay)
     if args.variant == "model":
-        variant_model(client)
+        variant_model(client, prediction=args.prediction)
     else:
         variant_voting(client)
     return 0

@@ -67,7 +67,36 @@ def score_routes(results, queries) -> RouteScore:
     wrong, whether the evidence was verbatim, which policy check fired, the
     confidence value, and whether the query was one of the ambiguous four.
     """
-    raise NotImplementedError("TODO 5: score the routes")
+    board = RouteScore()
+
+    # A missing result must not silently disappear from the measurement.
+    for result, query in zip(results, queries, strict=True):
+        board.total += 1
+        correct = result.applied_route == query.route
+
+        counts = board.per_route.setdefault(query.route, [0, 0])
+        counts[1] += 1
+        if correct:
+            counts[0] += 1
+        else:
+            board.confusion[(query.route, result.applied_route)] += 1
+
+        if result.evidence_ok:
+            board.evidence_ok += 1
+
+        if result.policy_fired is not None:
+            board.policy_fired[result.policy_fired] += 1
+
+        # Invalid decisions stay in the totals, but have no confidence value.
+        if result.decision is not None:
+            board.confidences.append(result.decision.confidence)
+
+        if query.ambiguous:
+            board.ambiguous_total += 1
+            if correct:
+                board.ambiguous_hits += 1
+
+    return board
 
 
 # --------------------------------------------------------------------------

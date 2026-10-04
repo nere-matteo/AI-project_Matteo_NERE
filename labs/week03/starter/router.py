@@ -28,7 +28,7 @@ class Decision(BaseModel):
 class Routed(BaseModel):
     """What the policy layer decided, and why."""
 
-    decision: Decision
+    decision: Decision | None
     applied_route: str
     policy_fired: str | None = None      # None means the decision stood
     evidence_ok: bool = True
@@ -101,7 +101,7 @@ def classify(client, text: str, model: str = SMALL.name,
 # exercise exists to catch. Run the classifier over the twenty four queries
 # first, print the confidences, and then decide. On one of the two course
 # models the answer will surprise you.
-CONFIDENCE_FLOOR = None     # TODO 3a
+CONFIDENCE_FLOOR = 0.0    # TODO 3a
 
 # TODO 3b. Where does anything the policy rejects go?
 #
@@ -109,7 +109,7 @@ CONFIDENCE_FLOOR = None     # TODO 3a
 # DOES on the sender's behalf, and pick the one whose actions are easiest to
 # undo. One of the five logs a ticket, one escalates to a human, and one
 # only answers. That should decide it.
-SAFE_DEFAULT = None          # TODO 3b
+SAFE_DEFAULT = "info"          # TODO 3b
 
 
 def apply_policy(decision: Decision | None, text: str) -> Routed:
@@ -135,7 +135,29 @@ def apply_policy(decision: Decision | None, text: str) -> Routed:
     it None when the decision stood. You will count these at the checkpoint,
     and "the policy fired sometimes" is not a count.
     """
-    raise NotImplementedError("TODO 3: the policy layer")
+    if decision is None:
+        return Routed(
+            decision=None,
+            applied_route=SAFE_DEFAULT,
+            policy_fired="invalid_decision",
+            evidence_ok=False,
+        )
+
+    evidence_ok = bool(decision.evidence) and decision.evidence in text
+
+    if not evidence_ok:
+        policy_fired = "evidence_not_verbatim"
+    elif decision.confidence < CONFIDENCE_FLOOR:
+        policy_fired = "below_threshold"
+    else:
+        policy_fired = None
+
+    return Routed(
+        decision=decision,
+        applied_route=SAFE_DEFAULT if policy_fired else decision.route,
+        policy_fired=policy_fired,
+        evidence_ok=evidence_ok,
+    )
 
 
 # --------------------------------------------------------------------------

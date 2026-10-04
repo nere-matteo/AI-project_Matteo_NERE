@@ -27,17 +27,17 @@ you change the number.
 
 Six items. Be ready to say your numbers out loud, per route, as counts.
 
-- [ ] Per-route accuracy reported as counts, and the confusion pairs named
+- [ yes ] Per-route accuracy reported as counts, and the confusion pairs named
       **with their direction**
-- [ ] The route carrying most of the error identified, and one sentence on
+- [ yes ] The route carrying most of the error identified, and one sentence on
       whether the fix is a definition or a prompt
-- [ ] Routing overhead computed: the classifying call as a share of the
+- [ yes ] Routing overhead computed: the classifying call as a share of the
       routed system's total tokens. Predict it before you look.
-- [ ] The four ambiguous queries discussed, with your convention written
+- [ yes ] The four ambiguous queries discussed, with your convention written
       down and defended
-- [ ] One sentence naming something a specialist can be forbidden to do that
+- [ yes ] One sentence naming something a specialist can be forbidden to do that
       the monolith cannot be given
-- [ ] Both scoreboards saved to disk, and `artifacts/goldset.json` now
+- [ ]yes  Both scoreboards saved to disk, and `artifacts/goldset.json` now
       holding thirty four cases
 
 ## Before you leave

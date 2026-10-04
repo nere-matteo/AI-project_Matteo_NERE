@@ -259,27 +259,30 @@ With the chosen floor, the confidence check should fire zero times. This is inte
 ### 3. Route accuracy
 
 | route | correct | of |
-| request | | |
-| info | | |
-| status | | |
-| complaint | | |
-| other | | |
+| request | 5 | 7 |
+| info | 5 | 5 |
+| status | 4 | 4 |
+| complaint | 4 | 4 |
+| other | 2 | 4 |
 
-Overall [ ]/24. Excluding the four ambiguous: [ ]/20.
+Overall [ 20 ]/24. Excluding the four ambiguous: [ 16 ]/20.
 
 Confusion pairs, with direction:
+request -> info twice and other -> info twice
 
 | gold | applied | count |
-| | | |
+| request | info | 2|
+| other | info | 2 |
 
-The route carrying most of the error is [ ]. The fix is [a definition / a
-prompt / a bigger model], because [ ].
+The errors are split equally between request and other, with two errors each, and all four end up in info. I would first clarify the info definition: requests to perform an action should route to request, even when phrased as questions, and questions outside the help desk’s remit should route to other.
+
+This could address three classifier mistakes. The remaining error, Q-02, needs better evidence copying: the classifier correctly chose request, but non-verbatim evidence caused the policy to apply info. A bigger model is not yet justified by these results.
 
 ### 4. What routing cost
 
-- monolith: [ ] tokens over 24 queries
-- router: [ ] tokens over 24 queries
-- the classifying call alone: [ ] tokens, which is [ ] per cent of the
+- monolith: [ 10, 213 ] tokens over 24 queries
+- router: [ 12, 117] tokens over 24 queries
+- the classifying call alone: [ 7,397 ] tokens, which is [ 61.0% ] per cent of the
   routed total
 
 I predicted that share would be [ ] before measuring it.
@@ -289,16 +292,36 @@ route definition on every call, and the specialists carry only their own.]
 
 ### 5. What routing bought
 
-One thing a specialist can be forbidden to do that the monolith cannot be
-given:
+The status specialist can be forbidden to treat a follow-up as a new service request. Applying that restriction unconditionally to the monolith would interfere with handling genuine new requests. A monolith could express the rule conditionally, but specialization gives each prompt a narrower responsibility that is easier to inspect.
 
-[...]
+I would not ship the current router yet. It routes 20/24 messages correctly, with three classifier mistakes and one evidence failure that changes a correct classification to the fallback route. It also increases token use and latency. The request route still needs to use the validated Week 2 extractor.
 
-Would I ship the router: [ ]. Evidence: [ ]. What would change my mind: [ ].
+I would reconsider after clarifying the info boundary, improving evidence copying, connecting the extractor, and comparing both systems’ answer quality on a larger unseen multilingual set.
 
 ### 6. Stretch variant
 
-Variant assigned: [ ]. Result: [ ].
+Variant assigned: [ model comparison ]. Result: [ 
+Measure | smaller model | bigger model |
+Overall | 20/24 | 17/24 |
+Excluding ambigious cases | 16/20 | 15/20 |
+request | 5/7 | 5/7 |
+info | 5/5 | 4/5 |
+status | 4/4 | 4/5 |
+complaint | 4/4 | 2/4 |
+other | 2/4 | 2/4 |
+Verbatim evidence | 23/24 | 22/24 |
+Confidence range | 0.0-0.999 | 0.95-1.0 |
+Distinct confidence values | 4 | 2 |
+Classification tokens | 7,397 | 7,227 |
+Classification time | 79.4 | 199.4 | (seconds)
+Resident memory | 3.9 | 5.0 |
+]. 
+
+The smaller model matched my prediction, routing three more cases correctly and copying evidence more reliably. The larger model routed two ambiguous complaints as requests despite reporting high confidence. Larger model size did not improve this classification task on this set.
+
+I would retain the smaller classifier provisionally and test the finding on a larger unseen set. The memory figures are course reference values from project/models.py, not measurements from my machine.
+
+
 
 [For model routing: report both models on accuracy, evidence verbatim, the
 confidence range, and resident memory. If the smaller model won, say so
@@ -309,7 +332,7 @@ ever disagreed, that is the result. Say what it cost and what it bought.]
 
 ### The gold set
 
-`artifacts/goldset.json` now holds [ ] cases: 10 from week 2 and 24 added
+`artifacts/goldset.json` now holds [ 34 ] cases: 10 from week 2 and 24 added
 today, with the four ambiguous ones tagged.
 
 ### Deferred
