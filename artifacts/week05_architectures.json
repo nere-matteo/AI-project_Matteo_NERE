@@ -1,0 +1,97 @@
+{
+  "rows": [
+    {
+      "architecture": "A baseline",
+      "green": false,
+      "tool_calls": 30,
+      "tokens": 37334,
+      "seconds": 795.7
+    },
+    {
+      "architecture": "B planner",
+      "green": false,
+      "plan_ok": true,
+      "plan_problems": [],
+      "applied": "REFUSED: that line does not appear in the file. It has to be copied character for character.",
+      "verdict": null,
+      "verdict_reason": null,
+      "fix": "booking.py: start_hour: int = 20 -> start_hour: int = 20:",
+      "tokens": 1481,
+      "seconds": 23.9
+    },
+    {
+      "architecture": "C planner+reviewer",
+      "green": false,
+      "plan_ok": true,
+      "plan_problems": [],
+      "applied": "not attempted",
+      "verdict": "reject",
+      "verdict_reason": "The patch adds a club parameter instead of fixing the start_hour comparison.",
+      "fix": "booking.py: total_eur(Booking(hours=2, resident=True, start_hour=20)), 84.24) -> total_eur(Booking(hours=2, resident=True, start_hour=20, club=True)), 84.24)",
+      "tokens": 2300,
+      "seconds": 32.8
+    },
+    {
+      "architecture": "A baseline",
+      "green": false,
+      "tool_calls": 22,
+      "tokens": 25242,
+      "seconds": 353.4
+    },
+    {
+      "architecture": "B planner",
+      "green": true,
+      "plan_ok": true,
+      "plan_problems": [],
+      "applied": "applied",
+      "verdict": null,
+      "verdict_reason": null,
+      "fix": "discounts.py: return 0.20 if is_off_peak(booking.start_hour) else 0.0 -> return 0.20 if is_off_peak(booking.start_hour) or booking.start_hour == 20 else 0.0",
+      "tokens": 5416,
+      "seconds": 75.1
+    },
+    {
+      "architecture": "C planner+reviewer",
+      "green": false,
+      "plan_ok": true,
+      "plan_problems": [],
+      "applied": "not attempted",
+      "verdict": "reject",
+      "verdict_reason": "Changes the off-peak start hour to 20, violating the business rule.",
+      "fix": "booking.py: start_hour: int = 10 -> start_hour: int = 20",
+      "tokens": 2283,
+      "seconds": 36.3
+    },
+    {
+      "architecture": "A baseline",
+      "green": false,
+      "tool_calls": 30,
+      "tokens": 42319,
+      "seconds": 281.4
+    },
+    {
+      "architecture": "B planner",
+      "green": false,
+      "plan_ok": true,
+      "plan_problems": [],
+      "applied": "applied",
+      "verdict": null,
+      "verdict_reason": null,
+      "fix": "booking.py: start_hour: int = 10 -> start_hour: int = 20",
+      "tokens": 1514,
+      "seconds": 28.1
+    },
+    {
+      "architecture": "C planner+reviewer",
+      "green": false,
+      "plan_ok": true,
+      "plan_problems": [],
+      "applied": "not attempted",
+      "verdict": "reject",
+      "verdict_reason": "The patch changes the discount threshold, potentially lowering the off-peak discount eligibility.",
+      "fix": "booking.py: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -> discount = 0 if start_hour < 20 else 0.1",
+      "tokens": 2267,
+      "seconds": 34.5
+    }
+  ]
+}

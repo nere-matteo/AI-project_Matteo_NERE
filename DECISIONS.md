@@ -425,3 +425,92 @@ Before adding such tools, I would enforce action permissions and argument valida
 
 [Anything you did not get to, and why.]
 
+## Week 5
+
+**Run conditions.** model: qwen2.5:7b | framework: Pydantic AI 2.56.0 |
+runs per architecture: 3 | served locally | date: 2026-10-15 |
+table from: recording and my runs
+
+### 1. The plan schema
+
+What I tried first, and what happened:
+
+[If you tried a nested list of Step objects, say what the error was. It does
+not fail gracefully and the error message does not mention schemas.]
+
+What I shipped, and why it is shaped that way:
+
+My plan has three field goals: str,steps: list[str], and suspect_file: str. The list preserves the order of the steps while keeping the schema flat. I did ot try nested Step objects; the practical reports that they consistently cause "Exceeded maximum output retries with this model".
+
+[...]
+
+### 2. The validator
+
+| check | what it catches |
+| between 2 and 6 steps | Plans that are too short or too long |
+| Suspect file belongs to KNOWN_FILES | Uknown or invalid source filenames |
+| No explicit proposal to edit or delete tests | Plans that try to change tests instead of fixing the source |
+
+On a failed check my system [repairs once / refuses], because [ ].
+
+If any check fails, the pipeline returns the problems and stops before calling the fixer. I chose refusal rather than a repair attempt to avoid another model call. The text checks are heuristics and may miss some wording; apply_fix separately enforces the restriction against editing tests. 
+
+### 3. The three-way table
+
+Recorded reference results:
+
+| architecture | green | tokens (mean) | seconds (mean) |
+| A baseline | 0/3 | 10470 | 40.1 |
+| B planner | 2/3 | 1751 | 15 |
+| C planner + reviewer | 0/3 | 3441 | 29.0 |
+
+my live results:
+| architecture | green | tokens (mean) | seconds (mean) |
+| A baseline | 0/3 | 34965 | 476.8 |
+| B planner | 1/3 | 2803 | 42.4 |
+| C planner + reviewer | 0/3 | 2283 | 34.5 |
+
+The recording continued despite failed plan validation, whereas my implementation refuses invalid plans. My planner input and reviewer instructions also differ from the reference, so the tables are not an identical replication.
+
+### 4. Why the baseline fails
+
+[Not "the model is too small". Look at what changed between A and B: it is
+not the model and it is not the prompt. Name it.]
+
+The baseline must coordinate repeated tool calls and edits itself. The planner-and-fixer pipeline narrows the action to one structured proposal, reducing that coordination burden.
+
+In my runs, the baseline made 30, 22, and 30 tool calls without fixing the failure. B was substantially cheaper and faster, although only one of its three proposals passed the tests.
+
+All six plans across B and C passed validation. This shows that my validator checks basic requirements without establishing whether the suspected file or proposed approach is correct.
+
+### 5. The reviewer
+
+Verdicts across my live runs: 0 approve, 3 reject.
+
+It rejected adding a club parameter to an apparent test expression, correctly identifying that this did not fix the comparison.
+
+It rejected changing the default booking start hour, but incorrectly described that default as the discount threshold.
+
+It rejected replacing traceback markers with unrelated discount logic, but its explanation did not identify the fabricated source line.
+
+In the reference recording, the reviewer instead rejected the correct > to >= patch in all three runs.
+
+Would I ship it: not on this evidence. My reviewer rejected bad proposals, but its explanations were unreliable and these runs did not demonstrate that it accepts correct fixes.
+
+Observed additional cost relative to B: −520 tokens and −7.9 seconds per run. These are differences between separate pipeline runs, not an isolated measurement of reviewer cost.
+
+The reviewer would earn its cost if it reliably rejected incorrect patches that passed the tests while accepting correct fixes. A larger evaluation containing both kinds of patch could change my decision.
+### 6. What my verifier cannot catch
+
+[The most valuable line on this page. The test suite is free, fast, and
+deterministic, and it still only checks the cases somebody wrote a test for.
+Name a change that would make the suite green and still be wrong. Week 10
+comes back for this.]
+
+B’s successful patch added or booking.start_hour == 20 inside off_peak_discount. All 16 tests passed, but is_off_peak(20) still returned False, contrary to its documented rule.
+
+The suite does not directly test that helper at the boundary. Passing tests therefore did not establish that the underlying function was correct. The intended correction is to change its comparison from > to >=.
+
+### Deferred
+
+[Anything you did not get to, and why.]
