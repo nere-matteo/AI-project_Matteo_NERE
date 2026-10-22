@@ -514,3 +514,90 @@ The suite does not directly test that helper at the boundary. Passing tests ther
 ### Deferred
 
 [Anything you did not get to, and why.]
+
+
+# Week 6: memory, a stateless MCP server, and an A2A channel
+---
+
+## Week 6
+
+**Run conditions.** MCP SDK: `2.0.0rc1` | specification revision: `2026-07-28` | date: `2026-10-22` | served locally.
+
+Memory comparison: `qwen2.5:7b`, temperature `0.0`, maximum output `128` tokens per call, one trial per condition. The protocol tests did not use a language model.
+
+### 1. The handle
+
+Fact handles use `fact-` followed by 32 random hexadecimal characters, generated with `secrets.token_hex(16)`. This provides 128 bits of randomness.
+
+Sequential handles would reveal the approximate number of writes and make neighbouring handles easy to guess. Random handles make enumeration harder, but do not replace authorization.
+
+Case handles identify a persisted mapping from a case to its resident. Later requests pass the handle explicitly, and each tool loads the current store.
+
+Without an explicit case identifier, the server would need another way to associate a caller with their active case, such as a session-to-subject mapping. Across two server instances, instance-local session state would require sticky routing or shared session storage.
+
+Both instances can resolve the case handle because they read the same file. Loading the file per call avoids stale startup copies, but does not prevent concurrent writes from overwriting one another.
+
+### 2. Conflict and retention
+
+**Conflict policy:** I keep both facts because overwriting would remove the history of what was recorded and when. Each write has its own handle and timestamp. Search favours newer writes when keyword scores tie, but this does not resolve contradictions: both facts may still be returned.
+
+**Retention policy:** Records do not expire automatically. They remain until explicitly deleted with `forget`. I kept this simple policy for the lab prototype. A real service holding residents’ data would need a defined retention period and automatic deletion.
+
+### 3. What k costs
+
+The default is `k = 3`. Search returns at most three matching facts for the requested subject.
+
+In the synthetic comparison, one matching fact was returned: “Prefers French for correspondence.” Including it in an additional system message increased the first call’s input from 87 to 100 tokens: an additional 13 input tokens, including the surrounding message and formatting.
+
+This is one measurement, not a fixed cost per fact. Token cost depends on the returned text, formatting, and model tokenizer. Increasing `k` allows more facts into the prompt, but only when enough facts match.
+
+At 400 facts, the implementation still scans the store to filter by subject, then scores and sorts matching candidates. Retrieval work increases, while the number of returned facts remains bounded by `k`. However, `k` limits fact count rather than text length, so it does not guarantee a fixed token budget.
+
+### 4. Memory off against memory on
+
+A small local test asked: “Please greet me in my preferred correspondence language.”
+
+The same base instructions told the model to ask for the language when it was unknown. The memory-on condition additionally received the fact retrieved from a temporary store containing a synthetic resident.
+
+| Configuration | Input tokens, summed | Output tokens, summed | Total tokens | Turns to finish |
+|---|---:|---:|---:|---:|
+| Memory off | 204 | 17 | 221 | 2 |
+| Memory on | 100 | 3 | 103 | 1 |
+
+A turn means one model response, including a clarification question.
+
+With memory off, the model asked which language the resident preferred. The test harness then supplied “My preferred correspondence language is French,” and the model answered “Bonjour!”
+
+With memory on, the model received the remembered preference and immediately answered “Bonjour.”
+
+Memory increased the first call’s input by 13 tokens, but avoided the clarification exchange. Total token use fell from 221 to 103 for this task.
+
+This was one synthetic task using direct local model calls and the memory store, rather than a complete MCP agent loop. It demonstrates a benefit when a remembered preference avoids clarification, but does not establish that memory improves every task.
+
+### 5. The protocol, at the wire
+
+The same raw `tools/list` request was sent without a prior handshake or session ID, using the starter’s HTTP headers.
+
+| Server mode | Status | Mcp-Session-Id | Answered |
+|---|---:|---|---|
+| `stateless_http=True` | 200 | absent | yes |
+| `stateless_http=False` | 400 | present | no |
+
+The session-mode server returned the exact error:
+
+`Bad Request: Missing session ID`
+
+All three checks passed. The stateless configuration answered without establishing a session. The session configuration rejected the identical request because it required a session ID.
+
+Resolving a case handle on two instances does not establish this difference: both instances can read the same persisted file even when transport sessions are enabled.
+
+This result applies to the pinned SDK and the starter’s request headers, which omit `MCP-Protocol-Version` and exercise its compatibility path.
+
+### 6. What forget does not reach
+
+`forget` removes the fact from the active store and rewrites the JSON file without it. It does not remove copies already included in a running conversation’s messages, logs, exports, or backups.
+
+A resident’s deletion request therefore requires handling those copies separately. Deleting the stored fact alone does not remove every copy.
+
+### Deferred
+

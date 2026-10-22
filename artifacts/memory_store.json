@@ -1,0 +1,14 @@
+{
+  "facts": [
+    {
+      "subject": "A. Muller",
+      "kind": "language",
+      "text": "Prefers French for correspondence.",
+      "handle": "fact-208662ae917debe76a3db35e86716776",
+      "written_at": "2026-10-22T10:25:25Z"
+    }
+  ],
+  "cases": {
+    "case-0aec61cb61f1": "A. Muller"
+  }
+}
