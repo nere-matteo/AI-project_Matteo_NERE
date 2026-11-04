@@ -1,0 +1,302 @@
+{
+  "k": 5,
+  "configs": [
+    {
+      "size": 300,
+      "overlap": 40,
+      "chunks": 157,
+      "dim": 768,
+      "index_seconds": 2.67,
+      "rows": {
+        "Q01": {
+          "dense_rank": 1,
+          "keyword_rank": 3,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q02": {
+          "dense_rank": 1,
+          "keyword_rank": 15,
+          "dense_recall": 1.0,
+          "keyword_recall": 0.0
+        },
+        "Q03": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q04": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q05": {
+          "dense_rank": 30,
+          "keyword_rank": 44,
+          "dense_recall": 0.0,
+          "keyword_recall": 0.0
+        },
+        "Q06": {
+          "dense_rank": 1,
+          "keyword_rank": 5,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q07": {
+          "dense_rank": 1,
+          "keyword_rank": 2,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q08": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q09": {
+          "dense_rank": 1,
+          "keyword_rank": 2,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q10": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q11": {
+          "dense_rank": 1,
+          "keyword_rank": 14,
+          "dense_recall": 1.0,
+          "keyword_recall": 0.0
+        }
+      },
+      "q05_section_ranks": {
+        "RB-ARRIVEE::Deadline": 30,
+        "RB-VIGNETTE::How to apply": 39
+      },
+      "q05_split": {
+        "part_ranks": [
+          {
+            "RB-ARRIVEE::Deadline": 2,
+            "RB-VIGNETTE::How to apply": 14
+          },
+          {
+            "RB-ARRIVEE::Deadline": 53,
+            "RB-VIGNETTE::How to apply": 8
+          }
+        ],
+        "merged_top5": [
+          "RB-ARRIVEE::Who must declare::0",
+          "RB-VIGNETTE::Who can apply::0",
+          "RB-ARRIVEE::Deadline::0",
+          "RB-VIGNETTE-2024::Who can apply::0",
+          "RB-ARRIVEE::Deadline::2"
+        ],
+        "merged_recall": 0.5
+      }
+    },
+    {
+      "size": 600,
+      "overlap": 80,
+      "chunks": 95,
+      "dim": 768,
+      "index_seconds": 1.68,
+      "rows": {
+        "Q01": {
+          "dense_rank": 1,
+          "keyword_rank": 3,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q02": {
+          "dense_rank": 1,
+          "keyword_rank": 14,
+          "dense_recall": 1.0,
+          "keyword_recall": 0.0
+        },
+        "Q03": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q04": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q05": {
+          "dense_rank": 22,
+          "keyword_rank": 17,
+          "dense_recall": 0.0,
+          "keyword_recall": 0.0
+        },
+        "Q06": {
+          "dense_rank": 1,
+          "keyword_rank": 5,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q07": {
+          "dense_rank": 1,
+          "keyword_rank": 3,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q08": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q09": {
+          "dense_rank": 1,
+          "keyword_rank": 2,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q10": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q11": {
+          "dense_rank": 1,
+          "keyword_rank": 12,
+          "dense_recall": 1.0,
+          "keyword_recall": 0.0
+        }
+      },
+      "q05_section_ranks": {
+        "RB-ARRIVEE::Deadline": 22,
+        "RB-VIGNETTE::How to apply": 24
+      },
+      "q05_split": {
+        "part_ranks": [
+          {
+            "RB-ARRIVEE::Deadline": 2,
+            "RB-VIGNETTE::How to apply": 14
+          },
+          {
+            "RB-ARRIVEE::Deadline": 34,
+            "RB-VIGNETTE::How to apply": 6
+          }
+        ],
+        "merged_top5": [
+          "RB-ARRIVEE::Who must declare::0",
+          "RB-VIGNETTE::Who can apply::0",
+          "RB-ARRIVEE::Deadline::1",
+          "RB-VIGNETTE-2024::Who can apply::0",
+          "RB-ARRIVEE::Deadline::0"
+        ],
+        "merged_recall": 0.5
+      }
+    },
+    {
+      "size": 1200,
+      "overlap": 120,
+      "chunks": 57,
+      "dim": 768,
+      "index_seconds": 1.28,
+      "rows": {
+        "Q01": {
+          "dense_rank": 1,
+          "keyword_rank": 4,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q02": {
+          "dense_rank": 1,
+          "keyword_rank": 4,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q03": {
+          "dense_rank": 1,
+          "keyword_rank": 2,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q04": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q05": {
+          "dense_rank": 20,
+          "keyword_rank": 13,
+          "dense_recall": 0.0,
+          "keyword_recall": 0.0
+        },
+        "Q06": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q07": {
+          "dense_rank": 1,
+          "keyword_rank": 2,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q08": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q09": {
+          "dense_rank": 1,
+          "keyword_rank": 4,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q10": {
+          "dense_rank": 1,
+          "keyword_rank": 1,
+          "dense_recall": 1.0,
+          "keyword_recall": 1.0
+        },
+        "Q11": {
+          "dense_rank": 1,
+          "keyword_rank": 14,
+          "dense_recall": 1.0,
+          "keyword_recall": 0.0
+        }
+      },
+      "q05_section_ranks": {
+        "RB-ARRIVEE::Deadline": 20,
+        "RB-VIGNETTE::How to apply": 21
+      },
+      "q05_split": {
+        "part_ranks": [
+          {
+            "RB-ARRIVEE::Deadline": 1,
+            "RB-VIGNETTE::How to apply": 14
+          },
+          {
+            "RB-ARRIVEE::Deadline": 24,
+            "RB-VIGNETTE::How to apply": 3
+          }
+        ],
+        "merged_top5": [
+          "RB-ARRIVEE::Deadline::0",
+          "RB-VIGNETTE::Who can apply::0",
+          "RB-ARRIVEE::Who must declare::0",
+          "RB-VIGNETTE-2024::Who can apply::0",
+          "RB-ARRIVEE::(intro)::0"
+        ],
+        "merged_recall": 0.5
+      }
+    }
+  ]
+}

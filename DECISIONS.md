@@ -601,3 +601,77 @@ A resident’s deletion request therefore requires handling those copies separat
 
 ### Deferred
 
+# Week 7: a RAG pipeline you can score
+---
+
+## Week 7
+
+**Run conditions.** embedding model: [ 'nomic-embed-text:latest'] | dimensionality: [ 768 ] | chunk size:
+[ 600 ] | overlap: [ 80 ] | k: 5 | store: Chroma (in memory) | date: [2026-11-04] | table from:
+[my own index, which gave the same results as the recording]
+
+### 1. The chunker
+
+size [ 600 ], overlap [ 80 ], because [ dense ranks did not separate 300, 600, 1200 on the ten easy questions, so I kept the middle size, 300 needs 157 chunks instead of 95 for no measured gain, and 1200 hands on the generator more text per slot. The choice is a judgement, not a measured win ].
+
+### 2. The index
+
+[ 95 ] chunks, [ 768 ] dimensions, [about 2 ] seconds for one full indexing run.
+
+### 3. The table
+
+| qid | dense rank | keyword rank | dense recall@5 | keyword recall@5 | tags |
+|---|---:|---:|---:|---:|---|
+| Q01 | 1 | 3 | 1.00 | 1.00 | distractor, superseded |
+| Q02 | 1 | 14 | 1.00 | 0.00 | rare-token |
+| Q03 | 1 | 1 | 1.00 | 1.00 | easy |
+| Q04 | 1 | 1 | 1.00 | 1.00 | vocabulary |
+| Q05 | 22 | 17 | 0.00 | 0.00 | multi-document |
+| Q06 | 1 | 5 | 1.00 | 1.00 | negation |
+| Q07 | 1 | 3 | 1.00 | 1.00 | easy |
+| Q08 | 1 | 1 | 1.00 | 1.00 | numeric |
+| Q09 | 1 | 2 | 1.00 | 1.00 | distractor |
+| Q10 | 1 | 1 | 1.00 | 1.00 | easy |
+| Q11 | 1 | 12 | 1.00 | 0.00 | easy |
+| Q12 | unanswerable | - | - | - | unanswerable |
+
+Dense beats keyword on 6 questions and ties on 4. Keyword beats dense only on Q05, where both fail. Dense beats keyword by the most on Q02, by 13 ranks: most of its words are common ones that the unweighted scorer counts as heavily as the form number, while the embedding is not misled by them. 
+
+### 4. Good pipeline, or easy task?
+
+[Ten of eleven questions rank the gold chunk first. Say which of the two
+that is evidence for. One sentence, and be honest.]
+
+Rank one on ten of eleven is evidence that the task is easy: a small corpus with one clearly matching section per question, so it shows the pipeline works on easy questions and says little about harder ones.
+
+### 5. The question that fails on both
+
+Why it fails: the question combines two needs, declaring an arrival and getting a parking vignette, and it is embedded as one vector, which lands near neither gold section. Dense returns the arrival document, but its "Who must declare" section rather than "Deadline", and nothing from the vignette application. Keyword is led by common words such as "and", "the" and "what".
+
+Would any chunk size fix it? No, because chunks never cross a section boundary, so no chunk can hold both answers.
+
+| Size / overlap | Chunks | Dense rank | Keyword rank | Recall@5, both |
+|---|---:|---:|---:|---:|
+| 300 / 40 | 157 | 30 | 44 | 0.00 |
+| 600 / 80 | 95 | 22 | 17 | 0.00 |
+| 1200 / 120 | 57 | 20 | 13 | 0.00 |
+| Whole section | 56 | 20 | 13 | 0.00 |
+
+The better ranks at large sizes are mostly a smaller list: dense rank 20 of 57 is further down, proportionally, than 30 of 157.
+
+Splitting the question helps only partly. Two hand-written sub-questions, retrieved separately and merged, raise recall@5 from 0.00 to 0.50 at all three sizes. "Deadline" comes back, but "How to apply" still loses to "Who can apply". It doubles the retrieval calls, and automating the split would add a model call. My split was written by hand knowing the gold answer, so this is an optimistic result.
+
+### 6. The gold-set correction
+
+The note said: a rare exact token is where dense retrieval loses and keyword search wins.
+
+My measurement said: dense 1, keyword 14 on Q02. The gold chunk scores 2 term hits, one chunk scores 3, and twelve more tie at 2 and come first by chunk_id.
+
+The corrected note: on this corpus at 600/80, dense ranks the gold chunk first and term overlap ranks it 14th, because term overlap counts RB-1140b the same as common words. That is a limit of this unweighted scorer, not of keyword search: with inverse document frequency weighting, keyword also ranks it first. Dense does not separate the token either: asked for "RB-1140a" alone, it ranks the current RB-1140b page above the 2024 page that carries RB-1140a, while term overlap returns only the 2024 page. The real risk is that superseded page, which dense ranks right behind the gold chunk on Q02.
+
+What it cost to find this: one table, then two small probes to find out why. Stopping at the table would have replaced one over-general claim with another, "dense beats keyword on rare tokens".
+
+### Deferred
+
+[Anything you did not get to, and why.]
+
