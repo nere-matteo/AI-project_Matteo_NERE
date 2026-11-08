@@ -516,6 +516,10 @@ The suite does not directly test that helper at the boundary. Passing tests ther
 [Anything you did not get to, and why.]
 
 
+### Application check-in
+
+I chose the plain Week 4 tool loop for the assembled application. The Week 5 reviewer rejected bad proposals, but its explanations were unreliable and my runs did not show that it reliably accepts correct fixes. The planner and validator pass through to the tool loop, and the reviewer returns no verdict.
+
 # Week 6: memory, a stateless MCP server, and an A2A channel
 ---
 
@@ -675,3 +679,9 @@ What it cost to find this: one table, then two small probes to find out why. Sto
 
 [Anything you did not get to, and why.]
 
+# Week 8 - Check in 
+What's in. The app uses the Week 2 few-shot extractor, the week 3 router, the week 4 tool loop, and the week 6 memory store and MCP server. The week 7 dense retriever runs through MemoryStore.search, using chunks of 600 characters with 80 characters of overlap. The bin collection check returned three retrieval hits and finished with outcome ok. 
+
+What's out. I kept the plain tool loop because my week 5 experiments didn't show that the reviewer reliably accepts corrects results. The week 8 retry and approval stages and the Week 9 vision and checks stages are still stubs 
+
+What's still open. The approval stub blocks ticket submission, and the retry stub lets failures propagate after one attempt. I've verified individual requests locally. I still need to test repeated unattended runs with week 10 evaluation harness.
