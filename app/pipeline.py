@@ -39,6 +39,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from project.contracts import Outcome, Trace
 from project.models import LARGE, SMALL
 from project.trace import TraceRecorder, local_conditions, repo_root
@@ -55,12 +57,13 @@ HELP_DESK = "Please telephone the help desk on 4796-2222."
 # its week 3 specialist prompt. Yours to change.
 AGENT_ROUTES = ("info",)
 
-# One policy per step, chosen in advance by consequence. The stub retry
-# module ignores them; week 8's honors them.
-SEARCH_POLICY = retry.StepPolicy(attempts=3, max_elapsed=3.0,
-                                 on_exhausted="degrade")
-AGENT_POLICY = retry.StepPolicy(attempts=2, max_elapsed=60.0,
-                                on_exhausted="degrade")
+# Only read-only operations can be retried. A submission needs a verdict.
+SEARCH_POLICY = retry.StepPolicy(attempts=3, max_elapsed=30.0)
+ROUTER_POLICY = retry.StepPolicy(attempts=2, max_elapsed=30.0)
+EXTRACT_POLICY = retry.StepPolicy(attempts=2, max_elapsed=30.0,
+                                  on_exhausted="escalate")
+AGENT_POLICY = retry.StepPolicy(attempts=2, max_elapsed=60.0)
+SPECIALIST_POLICY = retry.StepPolicy(attempts=2, max_elapsed=30.0)
 
 
 @dataclass
@@ -137,7 +140,7 @@ class _LazyClient:
     def __getattr__(self, name: str) -> Any:
         if self._real is None:
             from project.models import client_for
-            self._real = client_for()
+            self._real = client_for().with_options(max_retries=0, timeout=30.0)
         return getattr(self._real, name)
 
 
@@ -164,6 +167,14 @@ def _model_of(fn: Any, fallback: str) -> str:
     if isinstance(default, str) and default:
         return default
     return getattr(default, "name", None) or fallback
+
+
+def _record_policy(span, result: retry.StepResult) -> None:
+    span.ok = result.ok
+    span.detail(tries=result.tries, outcome=result.outcome,
+                attempts=[vars(attempt) for attempt in result.attempts],
+                used_fallback=result.used_fallback,
+                fallback_error=result.fallback_error)
 
 
 def case_id_for(text: str) -> str:
@@ -195,9 +206,10 @@ def _recall(run: _Run, subject: str, text: str) -> list[str]:
         res = retry.call_with_policy(store.search, subject, text, k=3,
                                      policy=SEARCH_POLICY)
         facts = [str(f) for f in (res.value or [])] if res.ok else []
-        s.detail(hits=len(facts), tries=res.tries, outcome=res.outcome)
-        if not res.ok:
-            run.missing.append("memory")
+        _record_policy(s, res)
+        s.detail(hits=len(facts), empty=res.ok and not facts)
+        if not facts:
+            run.missing.append("memory evidence")
     return facts
 
 
@@ -206,7 +218,10 @@ def _gate(run: _Run, payload: dict) -> dict:
         _mark(s, graph.request_approval, 8)
         decision = graph.request_approval(payload,
                                           unattended=run.unattended)
-        s.detail(action=payload["action"],
+        edited = decision.get("arguments", {})
+        changed = sorted(key for key, value in edited.items()
+                         if value != payload["arguments"].get(key))
+        s.detail(action=payload["action"], changed=changed,
                  verdict=decision.get("verdict"), by=decision.get("by"))
     return decision
 
@@ -216,22 +231,32 @@ def _submit(run: _Run, text: str, facts: list[str]) -> tuple[str, Outcome]:
     with run.rec.step("model", "extractor.extract") as s:
         if not _mark(s, extractor.extract, 2):
             run.models.add(_model_of(extractor.extract, SMALL.name))
-        record, meta = extractor.extract(run.client, extractor.SYSTEM, text)
+        res = retry.call_with_policy(extractor.extract, run.client,
+                                     extractor.SYSTEM, text, policy=EXTRACT_POLICY)
+        _record_policy(s, res)
+        record, meta = res.value if res.ok else (None, {})
         s.tokens(meta.get("prompt_tokens"), meta.get("completion_tokens"))
         s.detail(valid=record is not None, error=meta.get("error"))
     if record is None:
         return ("I could not turn this message into a request, so nothing "
                 f"was logged. {HELP_DESK}"), "refused"
 
-    arguments = record.model_dump()
+    arguments = record.model_dump(mode="json")
+    quote = record.quote if record.quote in text else text
     decision = _gate(run, {
         "action": "submit_case", "case_id": run.case_id,
-        "arguments": arguments, "evidence": [record.quote, *facts],
+        "arguments": arguments, "evidence": [quote, *facts],
         "degraded": bool(run.missing), "missing": sorted(run.missing)})
     verdict = decision.get("verdict")
     if verdict in ("approve", "edit"):
         if verdict == "edit":
-            arguments = decision.get("arguments") or arguments
+            try:
+                edited = extractor.ServiceRequest.model_validate(decision["arguments"])
+            except ValidationError:
+                return "Request held because the edited fields are invalid.", "blocked"
+            if edited.quote != record.quote and edited.quote not in text:
+                return "Request held because the edited quote is absent from the message.", "blocked"
+            arguments = edited.model_dump(mode="json")
         return (f"Logged a {arguments.get('category')} request, urgency "
                 f"{arguments.get('urgency')}."), "ok"
     return (f"Not submitted: the approval gate answered {verdict} "
@@ -263,7 +288,7 @@ def _answer(run: _Run, text: str, facts: list[str]) -> tuple[str, Outcome]:
         res = retry.call_with_policy(agent.run_task, run.client, task,
                                      policy=AGENT_POLICY)
         result = res.value
-        s.detail(tries=res.tries, outcome=res.outcome)
+        _record_policy(s, res)
         failed = [a.error for a in res.attempts if a.error]
         if failed:
             run.notes["call_failures"] = len(failed)
@@ -297,9 +322,16 @@ def _specialist(run: _Run, route: str, text: str) -> tuple[str, Outcome]:
         stubbed = _mark(s, router.respond, 3)
         if not stubbed:
             run.models.add(_model_of(router.respond, SMALL.name))
-        answer, meta = router.respond(run.client,
-                                      routes.SPECIALISTS.get(route, ""), text)
+        res = retry.call_with_policy(
+            router.respond, run.client, routes.SPECIALISTS.get(route, ""), text,
+            policy=SPECIALIST_POLICY,
+        )
+        _record_policy(s, res)
+        answer, meta = res.value if res.ok else (None, {})
         s.tokens(meta.get("prompt_tokens"), meta.get("completion_tokens"))
+    if not answer:
+        run.missing.append("specialist answer")
+        return f"I could not answer this right now. {HELP_DESK}", "degraded"
     return answer, "refused" if stubbed else "ok"
 
 
@@ -321,8 +353,13 @@ def _text(run: _Run, text: str, subject: str,
     with run.rec.step("model", "router.classify") as s:
         if not _mark(s, router.classify, 3):
             run.models.add(_model_of(router.classify, SMALL.name))
-        decision, meta = router.classify(run.client, text)
+        res = retry.call_with_policy(router.classify, run.client, text,
+                                     policy=ROUTER_POLICY)
+        _record_policy(s, res)
+        decision, meta = res.value if res.ok else (None, {})
         s.tokens(meta.get("prompt_tokens"), meta.get("completion_tokens"))
+        if not res.ok:
+            run.missing.append("routing decision")
     with run.rec.step("check", "router.apply_policy") as s:
         _mark(s, router.apply_policy, 3)
         routed = router.apply_policy(decision, text)

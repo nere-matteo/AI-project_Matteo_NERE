@@ -685,3 +685,62 @@ What's in. The app uses the Week 2 few-shot extractor, the week 3 router, the we
 What's out. I kept the plain tool loop because my week 5 experiments didn't show that the reviewer reliably accepts corrects results. The week 8 retry and approval stages and the Week 9 vision and checks stages are still stubs 
 
 What's still open. The approval stub blocks ticket submission, and the retry stub lets failures propagate after one attempt. I've verified individual requests locally. I still need to test repeated unattended runs with week 10 evaluation harness.
+
+**Run conditions.** fault seed: [ 42 ] | attempts: [ one attempt per tool for the baseline and up to three attempts for the hardened matrix ] | base delay: [ 20ms] |
+max elapsed: [ 3s ] | LangGraph [1.2.20] | date: [2026-11-08]
+
+The original command python starter/01-survive.py --baseline stopped at the unfinished TODO. To record all eight faults before implementing the retrly ladder, I used a temporary wrapper that made one attempt per tool and recorded exceptions so the matrix could continue. The run used no retries, fallback, or validation. 
+
+Fault | Verdict 
+Timeout | Failed
+Rate limit | Failed
+Server error | Failed 
+Malformed | Degraded
+Empty | Failed 
+Slow | Correct 
+Contract drift | Degraded 
+Flaky | Failed
+
+
+### 1. Which errors are retryable
+
+Retrayable: timeouts, rate limits, and server errors. These failures can clear on a later attempt.
+
+Deliberately NOT retrayable: contract drift, because the call already succeeded and retrying would return the same renamed field. The fee validator caught the drift after one attempt.
+
+### 2. The fault matrix
+
+| | correct | WRONG | degraded | failed |
+| baseline | 1 | 0 | 2 | 5 |
+| hardened | 2 | 0 | 5 | 1 |
+
+What hardening actually bought: 
+
+Outright failures dropped from five to one. Cached search evidence let the pipeline give partial answers when the fee lookup failed. One retry also recovered the flaky case. The WRONG count stayed at zero. 
+
+[If your answer is "more correct answers", look at the table again. Count
+the failed column before and after.]
+
+### 3. The empty result
+
+An empty result is not an error. My pipeline treats it as missing evidence, because a successful lookup can still return nothing useful. The draft names the missing evidence or fee and uses a whatever verified information remains. When both lookups are empty, the scorer marks the case as failed.
+
+### 4. The gate
+
+Gated step: case submission. The others steps run automatically because they only gather or prepare information. Submission changes the case record.
+
+An unanswered approval after the timeout: the app holds the submission after 30 seconds. In unattended mode, it applies that default immediately. That protects residents from incorrect case records and staff from acting on unreviewed submissions. In my unattended batch, all 58 cases finished and nine submissions were held at the gate. 
+
+The approval payload carries the case ID, the exact proposed fields, the source evidence, and any missing information. It deliberately does not carry a model-written summary. I verified approve, reject, and edit across separate processes in the lab. The edit changed the fee from €60 to €55, and the decision record saved both values and the reviewer.
+
+### 5. The duplicate the state does not show
+
+I deferred the duplicate-side-effect experiment on my own pipeline, so I have no measured counts to report for this run.
+
+What that means for anything my gated node does before it asks:
+
+The node starts again from its first line on resume. I keep everything above interrupt() read-only and put submission after the approval decision.
+
+### Deferred
+
+[Anything you did not get to, and why.]

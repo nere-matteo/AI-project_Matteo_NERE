@@ -1,0 +1,84 @@
+{
+  "rows": [
+    {
+      "fault": "timeout",
+      "hardened": true,
+      "search_tries": 3,
+      "search_outcome": "fallback",
+      "fees_tries": 3,
+      "fees_outcome": "degraded",
+      "verdict": "degraded",
+      "answer": "(cached) The resident parking vignette costs 60 EUR a year.\nI couldn't confirm the following: verified fee."
+    },
+    {
+      "fault": "rate_limit",
+      "hardened": true,
+      "search_tries": 3,
+      "search_outcome": "fallback",
+      "fees_tries": 3,
+      "fees_outcome": "degraded",
+      "verdict": "degraded",
+      "answer": "(cached) The resident parking vignette costs 60 EUR a year.\nI couldn't confirm the following: verified fee."
+    },
+    {
+      "fault": "server_error",
+      "hardened": true,
+      "search_tries": 3,
+      "search_outcome": "fallback",
+      "fees_tries": 3,
+      "fees_outcome": "degraded",
+      "verdict": "degraded",
+      "answer": "(cached) The resident parking vignette costs 60 EUR a year.\nI couldn't confirm the following: verified fee."
+    },
+    {
+      "fault": "malformed",
+      "hardened": true,
+      "search_tries": 1,
+      "search_outcome": "fallback",
+      "fees_tries": 1,
+      "fees_outcome": "degraded",
+      "verdict": "degraded",
+      "answer": "(cached) The resident parking vignette costs 60 EUR a year.\nI couldn't confirm the following: verified fee."
+    },
+    {
+      "fault": "empty",
+      "hardened": true,
+      "search_tries": 1,
+      "search_outcome": "ok",
+      "fees_tries": 1,
+      "fees_outcome": "ok",
+      "verdict": "failed",
+      "answer": "I couldn't confirm the following: handbook evidence, verified fee."
+    },
+    {
+      "fault": "slow",
+      "hardened": true,
+      "search_tries": 1,
+      "search_outcome": "ok",
+      "fees_tries": 1,
+      "fees_outcome": "ok",
+      "verdict": "correct",
+      "answer": "The resident parking vignette costs 60 EUR a year.\nVerified fee: EUR 60.00 per year."
+    },
+    {
+      "fault": "drift",
+      "hardened": true,
+      "search_tries": 1,
+      "search_outcome": "ok",
+      "fees_tries": 1,
+      "fees_outcome": "degraded",
+      "verdict": "degraded",
+      "answer": "The resident parking vignette costs 60 EUR a year.\nI couldn't confirm the following: verified fee."
+    },
+    {
+      "fault": "flaky",
+      "hardened": true,
+      "search_tries": 2,
+      "search_outcome": "ok",
+      "fees_tries": 2,
+      "fees_outcome": "ok",
+      "verdict": "correct",
+      "answer": "The resident parking vignette costs 60 EUR a year.\nVerified fee: EUR 60.00 per year."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "case_id": "RB-2026-0042",
+  "verdict": "edit",
+  "by": "a.muller",
+  "submitted": true,
+  "decision": "edit",
+  "original_arguments": {
+    "topic": "parking vignette",
+    "fee": {
+      "fee_eur": 60.0,
+      "period": "year"
+    }
+  },
+  "arguments": {
+    "topic": "parking vignette",
+    "fee": {
+      "fee_eur": 55.0,
+      "period": "year"
+    }
+  },
+  "changes": {
+    "fee": {
+      "before": {
+        "fee_eur": 60.0,
+        "period": "year"
+      },
+      "after": {
+        "fee_eur": 55.0,
+        "period": "year"
+      }
+    }
+  },
+  "evidence": [
+    "The resident parking vignette costs 60 EUR a year."
+  ],
+  "events": [
+    "search:ok:attempts=1",
+    "fees:ok:attempts=1",
+    "gate:edit:a.muller"
+  ]
+}
