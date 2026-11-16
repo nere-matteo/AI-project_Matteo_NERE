@@ -1,0 +1,2 @@
+#!/bin/sh
+exec .venv/bin/python -m pytest -q labs/week10/starter -m 'not judged'

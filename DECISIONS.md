@@ -924,3 +924,145 @@ because the reply still originates in an untrusted image.
 
 ## Deferred
 
+# Week 10, the evaluation harness
+
+This is the first week whose numbers are ABOUT your other weeks, so every
+figure needs to say which runs it covers and when they were recorded.
+
+## Conditions
+
+- Traces covered: how many, from which weeks, recorded when: 361 baseline traces from Weeks 1–6 and 8–9, recorded from 16 September to 15 November 2026, including 71 application traces from 8 November. The Week 10 application batch added 126 traces on 16 November, bringing the file to 487.
+- Judge model and version: local Ollama `qwen3:4b-instruct` (model ID `0edcdef34593`), temperature 0.
+- Judge threshold: 0.50, the starter default.
+- Harness versions (deepeval, ragas, pytest): DeepEval 4.3.4 and pytest 9.1.1. RAGAS was unused.
+- Run date: 16 November 2026 for the free report, live judge, and two application passes.
+
+## The free layer
+
+| week | runs | accuracy | consistency | robustness | predictability | safety |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+|5, architecture experiments, 15 oct | 14 | 0.14 | 0.67 | n/a | 0.00 | 0.00 |
+|8, fault injection, 8 Nov| 16 | 0.19 | n/a | n/a | 0.69 | 0.54 |
+|9, clean invoice replay, 15 Nov| 5 | 1.00 | n/a | n/a | n/a | n/a |
+|App baseline, 8 Nov | 71 | 0.76 | 0.67 | n/a | 0.12 | 0.94 |
+|All baseline traces, 16 sep-15 Nov | 361 | 0.88 | 0.98 | 1.00 | 0.26 | 0.55 |
+| App Week 10 batch, 16 Nov | 126 | 0.76 | 1.00 | n/a | 1.00 | 1.00 |
+
+The Week 10 application batch ran all 63 gold cases twice in unattended mode. It recorded 96 `ok`, 18 `blocked`, 10 `refused`, and 2 `degraded` outcomes. All 63 repeated pairs kept the same outcome, and all 30 non-successes were flagged and stopped safely under the harness definition. The vision and invoice-check stages were still stubs, so the 10 invoice attempts measured the application's refusal path.
+
+Consistency checks whether repeats under identical settings keep the same outcome. Robustness checks whether outcomes hold across changes to the settings. An `n/a` means the required runs are absent. A score of zero means eligible runs were present and none met the criterion.
+
+Which week has the best accuracy, and what do its other columns say: Week 9 had five ok outcomes across five clean invoice replays. Each invoice ran once under one recorded condition, so consistency and robustness were unknown. There were no non-successes from which to measure predictability or safety.
+
+Which week has the best predictability, and what does its accuracy say: Week 8 flagged 9 of 13 non-successes, giving it the highest measured lab predictability of 0.69. Its accuracy of 0.19 represents 3 of 16 runs ending ok under deliberate fault injection.
+
+In one sentence: what ranking these systems by accuracy alone would have
+told you, and why it would have been wrong: Ranking by accuracy alone puts the clean invoice replay first and hides the evidence that the week 8 fault-injection runs provide about how the system handles failures.
+
+### The n/a cells
+
+List every dimension that returned None, and for each one say whether it is
+an ABSENCE (you have no evidence yet) or a DEFECT (you could have had
+evidence and your instrumentation threw it away).
+
+| week | dimension | absence or defect | what would fix it |
+| --- | --- | --- | --- |
+| 5 | Robustness | Defect | Give each task a stable ID and record the architecture in settings |
+| 8 | consistency | Absence | Repeat each fault and policy combination under the same condition |
+| 8 | Robustness | Defect | Use the same case ID for each fault across policies and record the policy in settings |
+| 9 | Consistency | Absence | Repeat each invoice under the same recorded conditions |
+| 9 | Robustness | Absence | Record degraded variants under the same invoice ID |
+| 9 | Predictability | Absence | Record cases with non-successful outcomes and check whether they are flagged |
+| 9 | Safety | Absence | Record cases that exercise refusals, degraded answers, or blocks |
+| App baseline | Robustness | Absence | Rerun the same cases under a controlled change within the same evaluation week |
+| App Week 10 batch | Robustness | Absence | Rerun the same 63 cases under a second controlled condition. |
+
+
+The case ids in weeks 5 and 8 encode something they should not. Say what,
+and what it cost you: Week 5 IDs such as A-baseline-run1 encode the architecture and repetition. Week 8 IDs such as timeout-baseline and timeout-hardened encode the policy. These names split comparable runs into separate case groups, so the harness could not measure robustness across architectures or policies. As a manual consistency check, the three traces named A-baseline-run1 ended error ok, and error, so that group counted as inconsistent.
+
+## The labels
+
+The label you disagreed with, and your reasoning:
+
+L-09 is the borderline case. It gives the correct bulky-waste collection day and omits the appointment requirement, so a resident could follow the answer and still miss the collection.
+
+Whether you changed the label or kept it, and why:
+
+I kept the course's pass label for the calibration because the rubric accepts grounded partial answers. In a resident-facing evaluation, I would also check that the answer includes the prerequisites a resident needs to act.
+
+## The judge
+
+Agreement with the hand labels at your chosen threshold:
+
+At 0.50, the live judge agreed with all 12 hand labels.
+
+| | human pass | human fail |
+| --- | ---: | ---: |
+| judge pass | 5 | 0 |
+| judge fail | 0 | 7 |
+
+The threshold sweep:
+
+| threshold | agreement | false pass | false fail |
+| ---: | ---: | ---: | ---: |
+| 0.15 | 0.50 | 6 | 0 |
+| 0.25 | 0.67 | 4 | 0 |
+| 0.35 | 0.75 | 3 | 0 |
+| 0.45 | 1.00 | 0 | 0 |
+| 0.50 | 1.00 | 0 | 0 |
+| 0.55 | 1.00 | 0 | 0 |
+| 0.65 | 0.92 | 0 | 1 |
+| 0.75 | 0.83 | 0 | 2 |
+| 0.85 | 0.83 | 0 | 2 |
+
+The band where agreement is perfect:
+
+On these 12 cases, agreement was perfect for `0.40 < threshold <= 0.60`. The highest human-fail score was 0.40 and the lowest human-pass score was 0.60. A score equal to the cutoff passes.
+
+Where your threshold sits inside that band, and who chose it:
+
+I kept the starter default of 0.50. It sits halfway between the observed boundaries, and nudging it to 0.45 or 0.55 preserves all 12 verdicts.
+
+Which of false pass and false fail is worse for YOUR system, in one sentence
+that names the consequence rather than the metric:
+
+A false pass is worse because a resident could act on an invented fee, deadline, or application procedure.
+
+## Cost
+
+| layer | model calls | wall clock | can it run on every commit |
+| --- | --- | --- | --- |
+| deterministic checks | 0 | 1.038 s wall clock on the 361-trace baseline and 1.157 s on the final 487-trace file | Yes |
+| the four dimensions | 0 | 0.0120 s for trace loading and the baseline report | Yes |
+| the judge | 12 case evaluations, plus one generation of evaluation steps before any retries | 62.20 s recorded scoring time for 12 cases, 5.18 s per case | Reserve live scoring for releases and changes to the judge |
+
+What you would put in a pre-commit hook, what in CI, and what you would run
+only before a release:
+
+I would run the free gates before commits and in CI, and replay the saved calibration scores in CI when the rubric or cutoff changes. Before a release, I would run fresh live scoring and review disagreements. I would let missing trace conditions, insufficient failure signalling, or a judge false pass block a release. I would use shifts in the aggregate accuracy and reliability metrics as warnings until I reviewed the affected cases and conditions.
+
+## The gates
+
+| gate | what it protects | what a failure would mean |
+| --- | --- | --- |
+| Failure signalling | At least half of non-successes leave a recognised trace signal. | Too many non-successes are invisible to the checks that look for those signals. |
+| Judge agreement | At least 80% of judge verdicts agree with the hand labels. | The judge disagrees with too many calibration labels at the chosen cutoff. |
+| Zero false passes | Human-labelled failures are held for review. | At least one answer a human failed would be accepted. |
+| Threshold stability | A 0.05 change in either direction leaves each calibration verdict unchanged. | At least one decision depends on a small cutoff change. |
+
+For each gate, how you made it fail on purpose:
+
+- At 0.15, agreement dropped to 6/12 with six false passes, triggering the agreement and zero-false-pass gates.
+- At 0.60, the stability check's upward nudge to 0.65 changed L-05 from pass to fail. I restored the cutoff to 0.50 after the check.
+- The failure-signalling gate failed on the original traces with 11/42 flagged non-successes. I added explicit tracing for approval holds and other failure paths. The new batch flagged 30/30, bringing the combined trace file to 41/72 (57%), above the 50% floor.
+
+Any gate that asserts a number from this week rather than a property that
+should hold for any healthy version, and why you kept it anyway:
+
+The gates use acceptance criteria chosen for future runs. The 50% signalling floor, 80% agreement floor, zero false passes, and 0.05 stability check all apply as the recorded scores and outcomes change.
+
+## What you will not claim
+
+Trace accuracy counts `ok` outcomes. Checking whether residents received factually correct and complete answers would require grading actual application outputs against the gold expectations and reviewing a sample of real requests. To evaluate vision, I would wire in the real stages and compare extracted fields with ground truth on both degraded fixtures and real photographs. The judge agreement covers 12 supplied calibration cases. Applying it to resident traffic would require a larger, independently labelled sample of representative answers.
+

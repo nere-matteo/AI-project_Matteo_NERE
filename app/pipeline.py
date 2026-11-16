@@ -223,6 +223,8 @@ def _gate(run: _Run, payload: dict) -> dict:
                          if value != payload["arguments"].get(key))
         s.detail(action=payload["action"], changed=changed,
                  verdict=decision.get("verdict"), by=decision.get("by"))
+    if decision.get("verdict") not in ("approve", "edit"):
+        run.notes.setdefault("checks_fired", []).append("approval_required")
     return decision
 
 
@@ -237,6 +239,8 @@ def _submit(run: _Run, text: str, facts: list[str]) -> tuple[str, Outcome]:
         record, meta = res.value if res.ok else (None, {})
         s.tokens(meta.get("prompt_tokens"), meta.get("completion_tokens"))
         s.detail(valid=record is not None, error=meta.get("error"))
+        if res.ok and record is None:
+            s.failed("no valid service request was extracted")
     if record is None:
         return ("I could not turn this message into a request, so nothing "
                 f"was logged. {HELP_DESK}"), "refused"
@@ -253,8 +257,10 @@ def _submit(run: _Run, text: str, facts: list[str]) -> tuple[str, Outcome]:
             try:
                 edited = extractor.ServiceRequest.model_validate(decision["arguments"])
             except ValidationError:
+                run.notes.setdefault("checks_fired", []).append("invalid_approval_edit")
                 return "Request held because the edited fields are invalid.", "blocked"
             if edited.quote != record.quote and edited.quote not in text:
+                run.notes.setdefault("checks_fired", []).append("unverified_edited_quote")
                 return "Request held because the edited quote is absent from the message.", "blocked"
             arguments = edited.model_dump(mode="json")
         return (f"Logged a {arguments.get('category')} request, urgency "
@@ -271,6 +277,8 @@ def _answer(run: _Run, text: str, facts: list[str]) -> tuple[str, Outcome]:
         plan = agents.make_plan(text)
         plan_ok, problems = agents.validate_plan(plan)
         s.detail(steps=len(plan.steps), plan_ok=plan_ok, problems=problems)
+        if not plan_ok:
+            s.failed("plan validation failed")
     if not plan_ok:
         run.notes["plan_problems"] = problems
         return f"I could not plan an answer to this. {HELP_DESK}", "refused"
@@ -298,6 +306,8 @@ def _answer(run: _Run, text: str, facts: list[str]) -> tuple[str, Outcome]:
                      cap_fired=result.cap_fired,
                      tool_errors=result.tool_errors,
                      saw_injection=result.saw_injection)
+            if result.cap_fired:
+                run.notes.setdefault("checks_fired", []).append("agent_cap")
     if result is None or not res.ok:
         run.missing.append("agent")
         return f"I could not answer this right now. {HELP_DESK}", "degraded"
@@ -309,6 +319,8 @@ def _answer(run: _Run, text: str, facts: list[str]) -> tuple[str, Outcome]:
         verdict = agents.review(text, result.answer, facts)
         s.detail(verdict=verdict.decision if verdict else None,
                  reason=verdict.reason if verdict else None)
+        if verdict is not None and verdict.decision == "reject":
+            s.failed("answer review rejected the draft")
     if verdict is not None and verdict.decision == "reject":
         return (f"I have a draft answer but it did not pass review. "
                 f"{HELP_DESK}"), "blocked"
@@ -477,6 +489,8 @@ def run_batch(cases, repeat: int = 1, week: int | None = None,
     traces = []
     for _ in range(repeat):
         for case in cases:
+            image = getattr(case, "image", None)
             traces.append(handle(case.question, case_id=case.case_id,
+                                 image=repo_root() / image if image else None,
                                  week=week, unattended=True, path=path))
     return traces

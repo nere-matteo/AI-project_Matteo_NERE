@@ -187,6 +187,7 @@ class GoldCase(BaseModel):
     must_refuse: bool = Field(
         default=False,
         description="True for cases where answering at all is the failure")
+    image: str | None = Field(default=None, description="Repository-relative image fixture")
 
 
 class GoldSet(BaseModel):
